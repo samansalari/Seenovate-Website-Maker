@@ -1,4 +1,4 @@
-# Dyad
+
 
 Dyad is a local, open-source AI app builder. It's fast, private, and fully under your control — like Lovable, v0, or Bolt, but running right on your machine.
 
