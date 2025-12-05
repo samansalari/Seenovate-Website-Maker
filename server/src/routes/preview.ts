@@ -48,10 +48,12 @@ router.use("/:appId", async (req, res, next) => {
     pathRewrite: {
       [`^/preview/${appId}`]: "",
     },
-    onError: (err, req, res) => {
+    on: {
+      error: (err, req, res) => {
         console.error("Proxy error:", err);
-        res.status(502).send("Bad Gateway: Could not connect to app process.");
-    }
+        (res as any).status(502).send("Bad Gateway: Could not connect to app process.");
+      },
+    },
   })(req, res, next);
 });
 
