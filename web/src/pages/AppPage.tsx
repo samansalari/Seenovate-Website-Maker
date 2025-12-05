@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { ApiClient } from "@/api/api_client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { 
   SendIcon, 
   Loader2, 
@@ -36,8 +35,14 @@ interface App {
   name: string;
 }
 
+// Get appId from URL path
+function getAppIdFromUrl(): string | null {
+  const match = window.location.pathname.match(/\/app\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 export default function AppPage() {
-  const { appId } = useParams({ from: "/app/$appId" });
+  const appId = getAppIdFromUrl();
   const navigate = useNavigate();
   const [app, setApp] = useState<App | null>(null);
   const [chat, setChat] = useState<Chat | null>(null);
@@ -50,9 +55,19 @@ export default function AppPage() {
   const [isStartingApp, setIsStartingApp] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "preview">("chat");
+  const [error, setError] = useState<string | null>(null);
+
+  // Redirect if no appId
+  useEffect(() => {
+    if (!appId) {
+      navigate({ to: "/" });
+    }
+  }, [appId, navigate]);
 
   // Load app and chat data
   useEffect(() => {
+    if (!appId) return;
+    
     const loadData = async () => {
       try {
         const client = ApiClient.getInstance();
@@ -82,8 +97,9 @@ export default function AppPage() {
         if (status.previewUrl) {
           setPreviewUrl(status.previewUrl);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to load app data:", err);
+        setError(err.message || "Failed to load app");
       } finally {
         setIsLoading(false);
       }
@@ -182,6 +198,18 @@ export default function AppPage() {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !app) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-background">
+        <p className="text-destructive mb-4">{error || "App not found"}</p>
+        <Button onClick={() => navigate({ to: "/" })}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
       </div>
     );
   }

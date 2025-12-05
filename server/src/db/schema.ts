@@ -172,6 +172,11 @@ export const userSettings = pgTable("user_settings", {
   runtimeMode: text("runtime_mode").default("local-node"),
   turboEditsVersion: text("turbo_edits_version"),
   maxChatTurns: integer("max_chat_turns"),
+  // Free tier usage tracking
+  freePromptCount: integer("free_prompt_count").default(0),
+  // Pro status
+  enableDyadPro: boolean("enable_dyad_pro").default(false),
+  providerSettings: jsonb("provider_settings").$type<Record<string, any> | null>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

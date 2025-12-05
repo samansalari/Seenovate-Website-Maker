@@ -354,6 +354,18 @@ export class ApiClient {
     return this.fetch("/settings/providers");
   }
 
+  // Settings methods
+  public async getUserSettings(): Promise<UserSettings> {
+    return this.fetch("/settings");
+  }
+
+  public async updateUserSettings(updates: Partial<UserSettings>): Promise<UserSettings> {
+    return this.fetch("/settings", {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  }
+
   // Prompts methods
   public async listPrompts(): Promise<any[]> {
     return this.fetch("/prompts");
