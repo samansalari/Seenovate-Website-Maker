@@ -3,14 +3,13 @@ import { useAtom, useSetAtom } from "jotai";
 import { homeChatInputValueAtom } from "../atoms/chatAtoms";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import { IpcClient } from "@/ipc/ipc_client";
-import { generateCuteAppName } from "@/lib/utils";
+import { generateCuteAppName, cn } from "@/lib/utils";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import { useSettings } from "@/hooks/useSettings";
 import { SetupBanner } from "@/components/SetupBanner";
 import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useStreamChat } from "@/hooks/useStreamChat";
-import { HomeChatInput } from "@/components/chat/HomeChatInput";
 import { usePostHog } from "posthog-js/react";
 import { PrivacyBanner } from "@/components/TelemetryBanner";
 import { INSPIRATION_PROMPTS } from "@/prompts/inspiration_prompts";
@@ -23,20 +22,104 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import {
+  ExternalLink,
+  ArrowUpIcon,
+  RefreshCw,
+} from "lucide-react";
 import { ImportAppButton } from "@/components/ImportAppButton";
 import { showError } from "@/lib/toast";
 import { invalidateAppQuery } from "@/hooks/useLoadApp";
 import { useQueryClient } from "@tanstack/react-query";
+import { Textarea } from "@/components/ui/textarea";
 
 import type { FileAttachment } from "@/ipc/ipc_types";
 import { NEON_TEMPLATE_IDS } from "@/shared/templates";
 import { neonTemplateHook } from "@/client_logic/template_hook";
 import { ProBanner } from "@/components/ProBanner";
+import { useAttachments } from "@/hooks/useAttachments";
+import { AttachmentsList } from "@/components/chat/AttachmentsList";
+import { DragDropOverlay } from "@/components/chat/DragDropOverlay";
+import { FileAttachmentDropdown } from "@/components/chat/FileAttachmentDropdown";
+import { ChatInputControls } from "@/components/ChatInputControls";
 
 // Adding an export for attachments
 export interface HomeSubmitOptions {
   attachments?: FileAttachment[];
+}
+
+// Auto-resize textarea hook
+interface UseAutoResizeTextareaProps {
+  minHeight: number;
+  maxHeight?: number;
+}
+
+function useAutoResizeTextarea({
+  minHeight,
+  maxHeight,
+}: UseAutoResizeTextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustHeight = useCallback(
+    (reset?: boolean) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      if (reset) {
+        textarea.style.height = `${minHeight}px`;
+        return;
+      }
+
+      // Temporarily shrink to get the right scrollHeight
+      textarea.style.height = `${minHeight}px`;
+
+      // Calculate new height
+      const newHeight = Math.max(
+        minHeight,
+        Math.min(textarea.scrollHeight, maxHeight ?? Number.POSITIVE_INFINITY),
+      );
+
+      textarea.style.height = `${newHeight}px`;
+    },
+    [minHeight, maxHeight],
+  );
+
+  useEffect(() => {
+    // Set initial height
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = `${minHeight}px`;
+    }
+  }, [minHeight]);
+
+  // Adjust height on window resize
+  useEffect(() => {
+    const handleResize = () => adjustHeight();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [adjustHeight]);
+
+  return { textareaRef, adjustHeight };
+}
+
+// Action button component
+interface ActionButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+}
+
+function ActionButton({ icon, label, onClick }: ActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-full border border-border text-muted-foreground hover:text-foreground transition-colors"
+    >
+      {icon}
+      <span className="text-xs">{label}</span>
+    </button>
+  );
 }
 
 export default function HomePage() {
@@ -55,6 +138,25 @@ export default function HomePage() {
   const [releaseUrl, setReleaseUrl] = useState("");
   const { theme } = useTheme();
   const queryClient = useQueryClient();
+
+  const { textareaRef, adjustHeight } = useAutoResizeTextarea({
+    minHeight: 60,
+    maxHeight: 200,
+  });
+
+  // Use the attachments hook
+  const {
+    attachments,
+    isDraggingOver,
+    handleFileSelect,
+    removeAttachment,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    clearAttachments,
+    handlePaste,
+  } = useAttachments();
+
   useEffect(() => {
     const updateLastVersionLaunched = async () => {
       if (
@@ -103,7 +205,7 @@ export default function HomePage() {
   // Function to get random prompts
   const getRandomPrompts = useCallback(() => {
     const shuffled = [...INSPIRATION_PROMPTS].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
+    return shuffled.slice(0, 5);
   }, []);
 
   // Initialize random prompts
@@ -118,10 +220,12 @@ export default function HomePage() {
     }
   }, [appId, navigate]);
 
-  const handleSubmit = async (options?: HomeSubmitOptions) => {
-    const attachments = options?.attachments || [];
-
-    if (!inputValue.trim() && attachments.length === 0) return;
+  const handleSubmit = async () => {
+    if (
+      (!inputValue.trim() && attachments.length === 0) ||
+      isLoading
+    )
+      return;
 
     try {
       setIsLoading(true);
@@ -150,6 +254,7 @@ export default function HomePage() {
       );
 
       setInputValue("");
+      clearAttachments();
       setSelectedAppId(result.app.id);
       setIsPreviewOpen(false);
       await refreshApps(); // Ensure refreshApps is awaited if it's async
@@ -158,10 +263,17 @@ export default function HomePage() {
       navigate({ to: "/chat", search: { id: result.chatId } });
     } catch (error) {
       console.error("Failed to create chat:", error);
-      showError("Failed to create app. " + (error as any).toString());
+      showError("Failed to create app. " + (error as Error).toString());
       setIsLoading(false); // Ensure loading state is reset on error
     }
     // No finally block needed for setIsLoading(false) here if navigation happens on success
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   // Loading overlay for app creation
@@ -171,13 +283,13 @@ export default function HomePage() {
         <div className="w-full flex flex-col items-center">
           {/* Loading Spinner */}
           <div className="relative w-24 h-24 mb-8">
-            <div className="absolute top-0 left-0 w-full h-full border-8 border-gray-200 dark:border-gray-700 rounded-full"></div>
+            <div className="absolute top-0 left-0 w-full h-full border-8 border-muted rounded-full"></div>
             <div className="absolute top-0 left-0 w-full h-full border-8 border-t-primary rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-gray-200">
+          <h2 className="text-2xl font-bold mb-2 text-foreground">
             Building your app
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-8">
+          <p className="text-muted-foreground text-center max-w-md mb-8">
             We're setting up your app with AI magic. <br />
             This might take a moment...
           </p>
@@ -188,67 +300,115 @@ export default function HomePage() {
 
   // Main Home Page Content
   return (
-    <div className="flex flex-col items-center justify-center max-w-3xl w-full m-auto p-8">
+    <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto p-4 space-y-8">
       <SetupBanner />
+
+      <h1 className="text-4xl font-bold text-foreground">
+        What can I help you ship?
+      </h1>
 
       <div className="w-full">
         <ImportAppButton />
-        <HomeChatInput onSubmit={handleSubmit} />
 
-        <div className="flex flex-col gap-4 mt-2">
-          <div className="flex flex-wrap gap-4 justify-center">
-            {randomPrompts.map((item, index) => (
-              <button
-                type="button"
-                key={index}
-                onClick={() => setInputValue(`Build me a ${item.label}`)}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl border border-gray-200
-                           bg-white/50 backdrop-blur-sm
-                           transition-all duration-200
-                           hover:bg-white hover:shadow-md hover:border-gray-300
-                           active:scale-[0.98]
-                           dark:bg-gray-800/50 dark:border-gray-700
-                           dark:hover:bg-gray-800 dark:hover:border-gray-600"
-              >
-                <span className="text-gray-700 dark:text-gray-300">
-                  {item.icon}
-                </span>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {item.label}
-                </span>
-              </button>
-            ))}
+        <div
+          className={cn(
+            "relative bg-(--background-lighter) rounded-xl border border-border",
+            isDraggingOver && "ring-2 ring-primary border-primary",
+          )}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {/* Attachments list */}
+          <AttachmentsList
+            attachments={attachments}
+            onRemove={removeAttachment}
+          />
+
+          {/* Drag and drop overlay */}
+          <DragDropOverlay isDraggingOver={isDraggingOver} />
+
+          <div className="overflow-y-auto">
+            <Textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                adjustHeight();
+              }}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder="Ask Dyad to build something amazing..."
+              className={cn(
+                "w-full px-4 py-3",
+                "resize-none",
+                "bg-transparent",
+                "border-none",
+                "text-foreground text-sm",
+                "focus:outline-none",
+                "focus-visible:ring-0 focus-visible:ring-offset-0",
+                "placeholder:text-muted-foreground placeholder:text-sm",
+                "min-h-[60px]",
+              )}
+              style={{
+                overflow: "hidden",
+              }}
+            />
           </div>
 
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center gap-2">
+              <FileAttachmentDropdown
+                onFileSelect={handleFileSelect}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <ChatInputControls />
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!inputValue.trim() && attachments.length === 0}
+                className={cn(
+                  "px-1.5 py-1.5 rounded-lg text-sm transition-colors border border-border hover:bg-accent flex items-center justify-between gap-1",
+                  inputValue.trim() || attachments.length > 0
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "text-muted-foreground",
+                )}
+              >
+                <ArrowUpIcon
+                  className={cn(
+                    "w-4 h-4",
+                    inputValue.trim() || attachments.length > 0
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground",
+                  )}
+                />
+                <span className="sr-only">Send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+          {randomPrompts.map((item, index) => (
+            <ActionButton
+              key={index}
+              icon={item.icon}
+              label={item.label}
+              onClick={() => setInputValue(`Build me a ${item.label}`)}
+            />
+          ))}
           <button
             type="button"
             onClick={() => setRandomPrompts(getRandomPrompts())}
-            className="self-center flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200
-                       bg-white/50 backdrop-blur-sm
-                       transition-all duration-200
-                       hover:bg-white hover:shadow-md hover:border-gray-300
-                       active:scale-[0.98]
-                       dark:bg-gray-800/50 dark:border-gray-700
-                       dark:hover:bg-gray-800 dark:hover:border-gray-600"
+            className="flex items-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-full border border-border text-muted-foreground hover:text-foreground transition-colors"
+            title="Get more ideas"
           >
-            <svg
-              className="w-5 h-5 text-gray-700 dark:text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              More ideas
-            </span>
+            <RefreshCw className="w-4 h-4" />
           </button>
         </div>
+
         <ProBanner />
       </div>
       <PrivacyBanner />
