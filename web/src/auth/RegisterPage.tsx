@@ -23,7 +23,9 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const client = ApiClient.getInstance() || ApiClient.initialize({ getToken: () => null });
+      const client = ApiClient.isInitialized() 
+        ? ApiClient.getInstance() 
+        : ApiClient.initialize({ getToken: () => null });
       const response = await client.register(email, password, name);
       login(response.token, response.user);
       navigate({ to: "/" });
