@@ -15,25 +15,27 @@ import {
   QueryCache,
   MutationCache,
 } from "@tanstack/react-query";
-import { PostHogProvider } from "posthog-js/react";
-import posthog from "posthog-js";
 
-// Import components/routes
-// We reuse existing routes but wrap them with auth check
+// Import styles
+import "@/styles/globals.css";
+
+// Import components
 import Layout from "@/app/layout";
-import { homeRoute } from "@/routes/home";
-import { chatRoute } from "@/routes/chat";
-import { settingsRoute } from "@/routes/settings";
-import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
-import { appDetailsRoute } from "@/routes/app-details";
-import { hubRoute } from "@/routes/hub";
-import { libraryRoute } from "@/routes/library";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { showError } from "@/lib/toast";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LoginPage from "./auth/LoginPage";
 import RegisterPage from "./auth/RegisterPage";
 import { initializeWebClient } from "@/api/index";
+
+// Import page components directly (not pre-built routes)
+import HomePage from "@/pages/home";
+import ChatPage from "@/pages/chat";
+import SettingsPage from "@/pages/settings";
+import { ProviderSettingsPage } from "@/components/settings/ProviderSettingsPage";
+import AppDetailsPage from "@/pages/app-details";
+import HubPage from "@/pages/hub";
+import LibraryPage from "@/pages/library";
 
 // Initialize client
 initializeWebClient();
@@ -108,6 +110,52 @@ const protectedLayoutRoute = createRoute({
   component: ProtectedRoute,
 });
 
+// Define protected routes using page components
+const homeRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/",
+  component: HomePage,
+});
+
+const hubRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/hub",
+  component: HubPage,
+});
+
+const libraryRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/library",
+  component: LibraryPage,
+});
+
+const chatRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/chat/$chatId",
+  component: ChatPage,
+});
+
+const appDetailsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/app/$appId",
+  component: AppDetailsPage,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/settings",
+  component: SettingsPage,
+});
+
+const providerSettingsRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/providers/$provider",
+  component: function ProviderSettingsRouteComponent() {
+    const { provider } = providerSettingsRoute.useParams();
+    return <ProviderSettingsPage provider={provider} />;
+  },
+});
+
 // Build route tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
@@ -124,7 +172,11 @@ const routeTree = rootRoute.addChildren([
 
 const router = createRouter({
   routeTree,
-  defaultNotFoundComponent: () => null, // Handle 404s
+  defaultNotFoundComponent: () => (
+    <div className="flex h-screen items-center justify-center">
+      <p className="text-muted-foreground">Page not found</p>
+    </div>
+  ),
   defaultErrorComponent: ErrorBoundary,
 });
 
@@ -143,9 +195,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <PostHogProvider client={posthog}>
-          <App />
-        </PostHogProvider>
+        <App />
       </QueryClientProvider>
     </AuthProvider>
   </StrictMode>
