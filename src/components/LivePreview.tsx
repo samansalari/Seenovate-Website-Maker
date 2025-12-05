@@ -113,4 +113,3 @@ export function LivePreview({ appId, className }: LivePreviewProps) {
     </div>
   );
 }
-

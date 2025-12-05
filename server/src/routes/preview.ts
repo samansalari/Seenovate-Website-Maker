@@ -14,19 +14,9 @@ router.use("/:appId", async (req, res, next) => {
   const appId = parseInt(req.params.appId);
   
   // Check if app is running
-  let port = processManager.getAppPort(appId);
+  const port = processManager.getAppPort(appId);
 
   if (!port) {
-    // Auto-start if authenticated and owner (simple implementation)
-    // In a real scenario, we might want an explicit start endpoint
-    // But for "Lovable-like" experience, auto-start on visit is nice
-    
-    // We need to verify ownership/permission first
-    // Since this is a proxy middleware, we need to handle auth manually or skip for public previews
-    // For MVP: Require auth token in query param or cookie if not in header?
-    // Let's assume authMiddleware runs before this for the route
-    
-    // Ideally, we check if the app exists and who owns it
     try {
         const app = await db.query.apps.findFirst({
             where: eq(apps.id, appId),
@@ -66,4 +56,3 @@ router.use("/:appId", async (req, res, next) => {
 });
 
 export default router;
-

@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider, createRouter, createRootRoute, createRoute } from "@tanstack/react-router";
+import { RouterProvider, createRouter, createRootRoute, createRoute, Outlet } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedLayout } from "./layouts/ProtectedLayout";
@@ -9,6 +9,7 @@ import RegisterPage from "./pages/RegisterPage";
 import { Toaster } from "sonner";
 import { initializeWebClient } from "../api/index";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import IDEPage from "./pages/IDEPage";
 import "../styles/globals.css";
 
 // Initialize API client
@@ -50,8 +51,6 @@ const appRoute = createRoute({
   component: ProtectedLayout,
 });
 
-import IDEPage from "./pages/IDEPage";
-
 // Main IDE route
 const indexRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -72,8 +71,6 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
-
-import { Outlet } from "@tanstack/react-router";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
