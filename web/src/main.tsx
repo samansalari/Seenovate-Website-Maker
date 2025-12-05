@@ -4,6 +4,7 @@ import {
   createRouter,
   RouterProvider,
   createRootRoute,
+  createRoute,
   Outlet,
   useNavigate,
   useLocation,
@@ -88,18 +89,21 @@ const rootRoute = createRootRoute({
 });
 
 // Public routes
-const loginRoute = createRootRoute({
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
   path: "/login",
   component: LoginPage,
 });
 
-const registerRoute = createRootRoute({
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
   path: "/register",
   component: RegisterPage,
 });
 
 // Protected routes wrapper
-const protectedLayoutRoute = createRootRoute({
+const protectedLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
   id: "protected",
   component: ProtectedRoute,
 });
