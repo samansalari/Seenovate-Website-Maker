@@ -18,7 +18,10 @@ import streamRoutes from "./routes/stream.js";
 import settingsRoutes from "./routes/settings.js";
 import promptsRoutes from "./routes/prompts.js";
 import filesRoutes from "./routes/files.js";
+import previewRoutes from "./routes/preview.js";
+import processRoutes from "./routes/process.js";
 import { storage } from "./storage/index.js";
+import { setupWebSocket } from "./services/socket_manager.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -133,6 +136,10 @@ app.use("/api/stream", streamRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/prompts", promptsRoutes);
 app.use("/api/files", filesRoutes);
+app.use("/api/process", processRoutes);
+
+// Preview route (handled by http-proxy-middleware)
+app.use("/preview", previewRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -206,6 +213,9 @@ async function start() {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
   });
+
+  // Setup WebSocket server
+  setupWebSocket(server);
 
   server.on("error", (error) => {
     console.error("Server error:", error);

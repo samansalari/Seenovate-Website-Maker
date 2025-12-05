@@ -12,7 +12,7 @@ import {
   isStreamingByIdAtom,
   recentStreamChatIdsAtom,
 } from "@/atoms/chatAtoms";
-import { IpcClient } from "@/ipc/ipc_client";
+import { getClient } from "@/api/index";
 import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
 import type { ChatResponseEnd } from "@/ipc/ipc_types";
 import { useChats } from "./useChats";
@@ -105,7 +105,7 @@ export function useStreamChat({
 
       let hasIncrementedStreamCount = false;
       try {
-        IpcClient.getInstance().streamMessage(prompt, {
+        getClient().streamMessage(prompt, {
           selectedComponents: selectedComponents ?? [],
           chatId,
           redo,

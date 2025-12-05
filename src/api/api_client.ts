@@ -13,8 +13,10 @@ import type {
   CreateAppResult,
   ChatResponseEnd,
 } from "../ipc/ipc_types";
+import { io, Socket } from "socket.io-client";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const SOCKET_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : "http://localhost:3001";
 
 export interface ApiClientConfig {
   baseUrl?: string;
@@ -28,20 +30,47 @@ export interface ChatStreamCallbacks {
   onError: (error: string) => void;
 }
 
+export interface TerminalLog {
+  appId: number;
+  message: string;
+  isError: boolean;
+  timestamp: string;
+}
+
 export class ApiClient {
   private static instance: ApiClient;
   private baseUrl: string;
   private getToken: () => string | null;
   private onAuthError?: () => void;
   private chatStreams: Map<number, ChatStreamCallbacks>;
-  private activeEventSources: Map<number, EventSource>;
+  private socket: Socket | null = null;
+  private terminalListeners: Map<number, (log: TerminalLog) => void> = new Map();
 
   private constructor(config: ApiClientConfig) {
     this.baseUrl = config.baseUrl || API_BASE;
     this.getToken = config.getToken;
     this.onAuthError = config.onAuthError;
     this.chatStreams = new Map();
-    this.activeEventSources = new Map();
+    this.initSocket();
+  }
+
+  private initSocket() {
+    this.socket = io(SOCKET_URL, {
+      path: "/socket.io",
+      transports: ["websocket"],
+      autoConnect: true,
+    });
+
+    this.socket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+    });
+
+    this.socket.on("terminal:log", (log: TerminalLog) => {
+      const listener = this.terminalListeners.get(log.appId);
+      if (listener) {
+        listener(log);
+      }
+    });
   }
 
   public static initialize(config: ApiClientConfig): ApiClient {
@@ -91,6 +120,8 @@ export class ApiClient {
 
     return response.json();
   }
+
+  // ... (Existing methods remain unchanged) ...
 
   // Auth methods
   public async register(email: string, password: string, name?: string): Promise<{ user: any; token: string }> {
@@ -203,7 +234,6 @@ export class ApiClient {
     
     this.chatStreams.set(chatId, { onUpdate, onEnd, onError });
 
-    // Use fetch with streaming for SSE
     const token = this.getToken();
     
     fetch(`${this.baseUrl}/stream/${chatId}`, {
@@ -237,7 +267,6 @@ export class ApiClient {
 
           buffer += decoder.decode(value, { stream: true });
           
-          // Process SSE events
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
 
@@ -252,7 +281,6 @@ export class ApiClient {
                     onUpdate([...currentMessages]);
                     break;
                   case "chunk":
-                    // Update the last assistant message with streaming content
                     if (currentMessages.length > 0) {
                       const lastMsg = currentMessages[currentMessages.length - 1];
                       if (lastMsg.role === "assistant") {
@@ -304,7 +332,6 @@ export class ApiClient {
 
   public cancelStream(chatId: number): void {
     this.chatStreams.delete(chatId);
-    // Note: In a real implementation, you'd also cancel the fetch request
   }
 
   // Settings methods
@@ -370,10 +397,32 @@ export class ApiClient {
   public async listAppFiles(appId: number, recursive = false): Promise<{ files: any[] }> {
     return this.fetch(`/files/app/${appId}?recursive=${recursive}`);
   }
+
+  // Process Management & Logs
+  public async startApp(appId: number): Promise<{ port: number; previewUrl: string }> {
+    return this.fetch(`/process/${appId}/start`, { method: "POST" });
+  }
+
+  public async stopApp(appId: number): Promise<{ stopped: boolean }> {
+    return this.fetch(`/process/${appId}/stop`, { method: "POST" });
+  }
+
+  public async getAppStatus(appId: number): Promise<{ running: boolean; port?: number; previewUrl?: string }> {
+    return this.fetch(`/process/${appId}/status`);
+  }
+
+  public subscribeToLogs(appId: number, callback: (log: TerminalLog) => void) {
+    this.terminalListeners.set(appId, callback);
+    this.socket?.emit("join-app", appId);
+  }
+
+  public unsubscribeFromLogs(appId: number) {
+    this.terminalListeners.delete(appId);
+    this.socket?.emit("leave-app", appId);
+  }
 }
 
 // Helper to detect if running in Electron or web
 export function isElectron(): boolean {
   return typeof window !== "undefined" && !!(window as any).electron;
 }
-

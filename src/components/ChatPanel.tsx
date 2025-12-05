@@ -5,7 +5,8 @@ import {
   chatStreamCountByIdAtom,
   isStreamingByIdAtom,
 } from "../atoms/chatAtoms";
-import { IpcClient } from "@/ipc/ipc_client";
+import { getClient } from "@/api/index";
+import { isElectron } from "@/api/index";
 
 import { ChatHeader } from "./chat/ChatHeader";
 import { MessagesList } from "./chat/MessagesList";
@@ -14,6 +15,8 @@ import { VersionPane } from "./chat/VersionPane";
 import { ChatError } from "./chat/ChatError";
 import { Button } from "@/components/ui/button";
 import { ArrowDown } from "lucide-react";
+import { WebPreview } from "./WebPreview";
+import { selectedAppIdAtom } from "@/atoms/appAtoms";
 
 interface ChatPanelProps {
   chatId?: number;
@@ -32,12 +35,12 @@ export function ChatPanel({
   const [error, setError] = useState<string | null>(null);
   const streamCountById = useAtomValue(chatStreamCountByIdAtom);
   const isStreamingById = useAtomValue(isStreamingByIdAtom);
-  // Reference to store the processed prompt so we don't submit it twice
-
+  const selectedAppId = useAtomValue(selectedAppIdAtom);
+  
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Scroll-related properties
+  // ... rest of scroll logic ...
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const userScrollTimeoutRef = useRef<number | null>(null);
@@ -124,12 +127,16 @@ export function ChatPanel({
       // no-op when no chat
       return;
     }
-    const chat = await IpcClient.getInstance().getChat(chatId);
-    setMessagesById((prev) => {
-      const next = new Map(prev);
-      next.set(chatId, chat.messages);
-      return next;
-    });
+    try {
+      const chat = await getClient().getChat(chatId);
+      setMessagesById((prev) => {
+        const next = new Map(prev);
+        next.set(chatId, chat.messages);
+        return next;
+      });
+    } catch (error) {
+      console.error("Failed to fetch chat:", error);
+    }
   }, [chatId, setMessagesById]);
 
   useEffect(() => {
@@ -189,6 +196,13 @@ export function ChatPanel({
                 </div>
               )}
             </div>
+
+            {/* Web Preview in split pane or full view when on web */}
+            {!isElectron() && isPreviewOpen && selectedAppId && (
+              <div className="h-1/2 border-t">
+                <WebPreview appId={selectedAppId} className="h-full" />
+              </div>
+            )}
 
             <ChatError error={error} onDismiss={() => setError(null)} />
             <ChatInput chatId={chatId} />

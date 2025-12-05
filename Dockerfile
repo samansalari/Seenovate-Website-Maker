@@ -20,6 +20,9 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
+# Install build tools for user apps (git, python, build-base for node-gyp)
+RUN apk add --no-cache git python3 make g++
+
 WORKDIR /app
 
 # Install production dependencies only
