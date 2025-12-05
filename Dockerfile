@@ -12,6 +12,7 @@ RUN npm ci
 # Copy frontend source files and configs
 COPY web ./web
 COPY src ./src
+COPY shared ./shared
 COPY assets ./assets
 COPY vite.web.config.mts ./
 COPY tsconfig*.json ./
