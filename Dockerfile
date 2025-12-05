@@ -13,12 +13,12 @@ RUN npm ci
 COPY web ./web
 COPY src ./src
 COPY assets ./assets
-COPY vite.web.config.ts ./
+COPY vite.web.config.mts ./
 COPY tsconfig*.json ./
 COPY biome.json ./
 COPY components.json ./
 
-# Build frontend (outputs to dist/)
+# Build frontend (outputs to dist_web/)
 RUN npm run build:web
 
 # Backend build stage
@@ -55,8 +55,8 @@ RUN npm ci --omit=dev
 # Copy built server
 COPY --from=backend-builder /app/dist ./dist
 
-# Copy built frontend (vite.web.config.ts outputs to dist/)
-COPY --from=frontend-builder /app/dist ./public
+# Copy built frontend (vite.web.config.mts outputs to dist_web/)
+COPY --from=frontend-builder /app/dist_web ./public
 
 # Copy migrations
 COPY server/drizzle ./drizzle

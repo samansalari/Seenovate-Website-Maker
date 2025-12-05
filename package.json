@@ -29,7 +29,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "build:web": "vite build --config vite.web.config.ts",
+    "build:web": "vite build --config vite.web.config.mts",
     "prettier:check": "npx prettier --check .",
     "prettier": "npx prettier --write .",
     "presubmit": "npm run prettier:check && npm run lint",
