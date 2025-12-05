@@ -1,8 +1,14 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import "dotenv/config";
 
 import { initializeDatabase, closeDatabase } from "./db/index.js";
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import routes
 import authRoutes from "./routes/auth.js";
@@ -70,7 +76,10 @@ async function runMigrations() {
 
   try {
     const db = drizzle(pool);
-    await migrate(db, { migrationsFolder: "./drizzle" });
+    // Use absolute path to ensure migrations are found regardless of CWD
+    const migrationsFolder = path.join(__dirname, "..", "drizzle");
+    console.log("Migrations folder:", migrationsFolder);
+    await migrate(db, { migrationsFolder });
     console.log("Migrations completed successfully");
   } catch (error) {
     console.error("Migration error:", error);
