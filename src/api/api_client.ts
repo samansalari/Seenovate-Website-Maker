@@ -15,8 +15,12 @@ import type {
 } from "../ipc/ipc_types";
 import { io, Socket } from "socket.io-client";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-const SOCKET_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : "http://localhost:3001";
+// In production, use relative URLs (same origin). In development, use localhost.
+const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? "/api" : "http://localhost:3001/api");
+const SOCKET_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace("/api", "") 
+  : (isProduction ? window.location.origin : "http://localhost:3001");
 
 export interface ApiClientConfig {
   baseUrl?: string;

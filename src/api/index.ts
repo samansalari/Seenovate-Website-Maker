@@ -27,8 +27,12 @@ export function clearStoredToken(): void {
 
 // Initialize API client for web mode
 export function initializeWebClient(onAuthError?: () => void): ApiClient {
+  // In production, use relative URLs (same origin). In development, use localhost.
+  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+  const baseUrl = import.meta.env.VITE_API_URL || (isProduction ? "/api" : "http://localhost:3001/api");
+  
   return ApiClient.initialize({
-    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:3001/api",
+    baseUrl,
     getToken: getStoredToken,
     onAuthError: () => {
       clearStoredToken();
