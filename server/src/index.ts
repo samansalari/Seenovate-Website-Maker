@@ -45,6 +45,86 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Root landing page
+app.get("/", (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dyad API Server</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(90deg, #e94560, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .status {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: ${isReady ? '#10b981' : '#f59e0b'};
+      border-radius: 20px;
+      font-size: 0.875rem;
+      margin-bottom: 2rem;
+    }
+    p { color: #94a3b8; line-height: 1.6; margin-bottom: 1rem; }
+    .endpoints {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: left;
+      margin-top: 2rem;
+    }
+    .endpoints h3 { color: #e94560; margin-bottom: 1rem; }
+    .endpoint {
+      font-family: monospace;
+      color: #60a5fa;
+      padding: 0.25rem 0;
+    }
+    a { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Dyad API</h1>
+    <div class="status">${isReady ? '✓ Ready' : '⏳ Initializing...'}</div>
+    <p>AI-powered application builder backend API server.</p>
+    <p>This is the API endpoint. Connect your frontend application to interact with the service.</p>
+    <div class="endpoints">
+      <h3>Available Endpoints</h3>
+      <div class="endpoint">POST /api/auth/register</div>
+      <div class="endpoint">POST /api/auth/login</div>
+      <div class="endpoint">GET  /api/apps</div>
+      <div class="endpoint">GET  /api/chats/:id</div>
+      <div class="endpoint">POST /api/stream/:chatId</div>
+      <div class="endpoint">GET  /api/settings/providers</div>
+      <div class="endpoint">GET  /health</div>
+    </div>
+  </div>
+</body>
+</html>
+  `);
+});
+
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/apps", appsRoutes);
