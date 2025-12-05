@@ -27,6 +27,7 @@ import RegisterPage from "./auth/RegisterPage";
 
 // Import web-specific page components
 import HomePage from "./pages/HomePage";
+import AppPage from "./pages/AppPage";
 
 // Query Client setup
 const queryClient = new QueryClient({
@@ -108,12 +109,19 @@ const homeRoute = createRoute({
   component: HomePage,
 });
 
+const appRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: "/app/$appId",
+  component: AppPage,
+});
+
 // Build route tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   protectedLayoutRoute.addChildren([
     homeRoute,
+    appRoute,
   ]),
 ]);
 

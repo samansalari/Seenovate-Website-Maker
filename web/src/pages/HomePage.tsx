@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../auth/AuthContext";
 import { ApiClient } from "@/api/api_client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { SendIcon, Loader2, LogOut, Plus, Sparkles } from "lucide-react";
+import { SendIcon, Loader2, LogOut, Sparkles } from "lucide-react";
 
 // Inspiration prompts
 const INSPIRATION_PROMPTS = [
@@ -24,6 +25,7 @@ interface App {
 
 export default function HomePage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apps, setApps] = useState<App[]>([]);
@@ -72,26 +74,18 @@ export default function HomePage() {
         },
         onEnd: () => {
           console.log("Stream ended");
-          // Reload apps
-          client.listApps().then(response => {
-            setApps(response.apps || []);
-          });
         },
         onError: (error) => {
           console.error("Stream error:", error);
-          setError(error);
         },
       });
 
-      setInputValue("");
-      
-      // Add the new app to the list
-      setApps(prev => [result.app, ...prev]);
+      // Navigate to the app page immediately
+      navigate({ to: "/app/$appId", params: { appId: String(result.app.id) } });
       
     } catch (err: any) {
       console.error("Failed to create app:", err);
       setError(err.message || "Failed to create app");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -193,10 +187,6 @@ export default function HomePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Your Apps</h2>
-            <Button variant="outline" size="sm" onClick={() => handleSubmit()}>
-              <Plus className="h-4 w-4 mr-2" />
-              New App
-            </Button>
           </div>
 
           {loadingApps ? (
@@ -214,7 +204,11 @@ export default function HomePage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {apps.map((app) => (
-                <Card key={app.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+                <Card 
+                  key={app.id} 
+                  className="hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => navigate({ to: "/app/$appId", params: { appId: String(app.id) } })}
+                >
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">{app.name}</CardTitle>
                   </CardHeader>

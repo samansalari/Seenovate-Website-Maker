@@ -259,6 +259,11 @@ export const UserSettingsSchema = z.object({
   customNodePath: z.string().optional().nullable(),
 
   ////////////////////////////////
+  // FREE TIER USAGE TRACKING
+  ////////////////////////////////
+  freePromptCount: z.number().optional(),
+
+  ////////////////////////////////
   // E2E TESTING ONLY.
   ////////////////////////////////
   isTestMode: z.boolean().optional(),
@@ -282,6 +287,36 @@ export function isDyadProEnabled(settings: UserSettings): boolean {
 
 export function hasDyadProKey(settings: UserSettings): boolean {
   return !!settings.providerSettings?.auto?.apiKey?.value;
+}
+
+/**
+ * Maximum number of free prompts allowed for non-Pro users
+ */
+export const FREE_PROMPT_LIMIT = 10;
+
+/**
+ * Checks if the user can send prompts (either Pro or within free limit)
+ */
+export function canSendPrompt(settings: UserSettings): boolean {
+  // Pro users have unlimited prompts
+  if (isDyadProEnabled(settings)) {
+    return true;
+  }
+
+  // Check if user is within free limit
+  const usedPrompts = settings.freePromptCount ?? 0;
+  return usedPrompts < FREE_PROMPT_LIMIT;
+}
+
+/**
+ * Gets the remaining free prompts for non-Pro users
+ */
+export function getRemainingFreePrompts(settings: UserSettings): number {
+  if (isDyadProEnabled(settings)) {
+    return Infinity;
+  }
+  const usedPrompts = settings.freePromptCount ?? 0;
+  return Math.max(0, FREE_PROMPT_LIMIT - usedPrompts);
 }
 
 export function isTurboEditsV2Enabled(settings: UserSettings): boolean {

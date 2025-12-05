@@ -42,6 +42,8 @@ import { AttachmentsList } from "@/components/chat/AttachmentsList";
 import { DragDropOverlay } from "@/components/chat/DragDropOverlay";
 import { FileAttachmentDropdown } from "@/components/chat/FileAttachmentDropdown";
 import { ChatInputControls } from "@/components/ChatInputControls";
+import { useProStatus } from "@/hooks/useProStatus";
+import { PaywallDialog } from "@/components/PaywallDialog";
 
 // Adding an export for attachments
 export interface HomeSubmitOptions {
@@ -139,6 +141,15 @@ export default function HomePage() {
   const { theme } = useTheme();
   const queryClient = useQueryClient();
 
+  // Pro status and paywall
+  const {
+    isPro,
+    canSendPrompt: canSend,
+    remainingPrompts,
+    incrementPromptCount,
+  } = useProStatus();
+  const [showPaywall, setShowPaywall] = useState(false);
+
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: 60,
     maxHeight: 200,
@@ -227,8 +238,18 @@ export default function HomePage() {
     )
       return;
 
+    // Check if user can send prompts (Pro or within free limit)
+    if (!canSend) {
+      setShowPaywall(true);
+      return;
+    }
+
     try {
       setIsLoading(true);
+
+      // Increment prompt count for free tier users
+      await incrementPromptCount();
+
       // Create the chat and navigate
       const result = await IpcClient.getInstance().createApp({
         name: generateCuteAppName(),
@@ -364,6 +385,23 @@ export default function HomePage() {
               />
             </div>
             <div className="flex items-center gap-2">
+              {/* Show remaining prompts for free tier users */}
+              {!isPro && (
+                <span
+                  className={cn(
+                    "text-xs px-2 py-1 rounded-md",
+                    remainingPrompts > 3
+                      ? "text-muted-foreground bg-secondary/50"
+                      : remainingPrompts > 0
+                        ? "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30"
+                        : "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
+                  )}
+                >
+                  {remainingPrompts > 0
+                    ? `${remainingPrompts} free prompt${remainingPrompts !== 1 ? "s" : ""} left`
+                    : "No free prompts left"}
+                </span>
+              )}
               <ChatInputControls />
               <button
                 type="button"
@@ -445,6 +483,12 @@ export default function HomePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Paywall Dialog */}
+      <PaywallDialog
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
     </div>
   );
 }
