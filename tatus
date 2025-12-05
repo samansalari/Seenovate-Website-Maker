@@ -1,0 +1,30 @@
+[1mdiff --git a/Dockerfile b/Dockerfile[m
+[1mindex f094dcc..35a4ccf 100644[m
+[1m--- a/Dockerfile[m
+[1m+++ b/Dockerfile[m
+[36m@@ -13,12 +13,12 @@[m [mRUN npm ci[m
+ COPY web ./web[m
+ COPY src ./src[m
+ COPY assets ./assets[m
+[31m-COPY vite.web.config.ts ./[m
+[32m+[m[32mCOPY vite.web.config.mts ./[m
+ COPY tsconfig*.json ./[m
+ COPY biome.json ./[m
+ COPY components.json ./[m
+ [m
+[31m-# Build frontend (outputs to dist/)[m
+[32m+[m[32m# Build frontend (outputs to dist_web/)[m
+ RUN npm run build:web[m
+ [m
+ # Backend build stage[m
+[36m@@ -55,8 +55,8 @@[m [mRUN npm ci --omit=dev[m
+ # Copy built server[m
+ COPY --from=backend-builder /app/dist ./dist[m
+ [m
+[31m-# Copy built frontend (vite.web.config.ts outputs to dist/)[m
+[31m-COPY --from=frontend-builder /app/dist ./public[m
+[32m+[m[32m# Copy built frontend (vite.web.config.mts outputs to dist_web/)[m
+[32m+[m[32mCOPY --from=frontend-builder /app/dist_web ./public[m
+ [m
+ # Copy migrations[m
+ COPY server/drizzle ./drizzle[m

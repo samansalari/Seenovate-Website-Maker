@@ -1,4 +1,4 @@
-# Frontend build stage
+# Frontend build stage - Updated 2025-12-05
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
