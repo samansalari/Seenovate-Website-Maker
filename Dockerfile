@@ -1,5 +1,28 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Frontend build stage
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy root package files for frontend build
+COPY package*.json ./
+
+# Install frontend dependencies
+RUN npm ci
+
+# Copy frontend source files and configs
+COPY web ./web
+COPY src ./src
+COPY assets ./assets
+COPY vite.web.config.ts ./
+COPY tsconfig*.json ./
+COPY biome.json ./
+COPY components.json ./
+
+# Build frontend (outputs to dist/)
+RUN npm run build:web
+
+# Backend build stage
+FROM node:20-alpine AS backend-builder
 
 WORKDIR /app
 
@@ -30,7 +53,10 @@ COPY server/package*.json ./
 RUN npm ci --omit=dev
 
 # Copy built server
-COPY --from=builder /app/dist ./dist
+COPY --from=backend-builder /app/dist ./dist
+
+# Copy built frontend (vite.web.config.ts outputs to dist/)
+COPY --from=frontend-builder /app/dist ./public
 
 # Copy migrations
 COPY server/drizzle ./drizzle
@@ -52,4 +78,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 
 # Run server
 CMD ["node", "dist/index.js"]
-
