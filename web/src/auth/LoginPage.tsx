@@ -22,8 +22,10 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Initialize client temporarily to make the request
-      const client = ApiClient.getInstance() || ApiClient.initialize({ getToken: () => null });
+      // Get or initialize the client
+      const client = ApiClient.isInitialized() 
+        ? ApiClient.getInstance() 
+        : ApiClient.initialize({ getToken: () => null });
       const response = await client.login(email, password);
       login(response.token, response.user);
       navigate({ to: "/" });

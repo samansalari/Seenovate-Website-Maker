@@ -7,7 +7,6 @@ import {
   createRoute,
   Outlet,
   useNavigate,
-  useLocation,
 } from "@tanstack/react-router";
 import {
   QueryClient,
@@ -17,28 +16,17 @@ import {
 } from "@tanstack/react-query";
 
 // Import styles
-import "@/styles/globals.css";
+import "./styles/globals.css";
 
 // Import components
-import Layout from "@/app/layout";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { showError } from "@/lib/toast";
+import { WebLayout } from "./layouts/WebLayout";
+import { WebErrorBoundary } from "./components/WebErrorBoundary";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LoginPage from "./auth/LoginPage";
 import RegisterPage from "./auth/RegisterPage";
-import { initializeWebClient } from "@/api/index";
 
-// Import page components directly (not pre-built routes)
-import HomePage from "@/pages/home";
-import ChatPage from "@/pages/chat";
-import SettingsPage from "@/pages/settings";
-import { ProviderSettingsPage } from "@/components/settings/ProviderSettingsPage";
-import AppDetailsPage from "@/pages/app-details";
-import HubPage from "@/pages/hub";
-import LibraryPage from "@/pages/library";
-
-// Initialize client
-initializeWebClient();
+// Import web-specific page components
+import HomePage from "./pages/HomePage";
 
 // Query Client setup
 const queryClient = new QueryClient({
@@ -48,12 +36,16 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (error, query) => {
-      if (query.meta?.showErrorToast) showError(error);
+      if (query.meta?.showErrorToast) {
+        console.error("Query error:", error);
+      }
     },
   }),
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
-      if (mutation.meta?.showErrorToast) showError(error);
+      if (mutation.meta?.showErrorToast) {
+        console.error("Mutation error:", error);
+      }
     },
   }),
 });
@@ -62,13 +54,12 @@ const queryClient = new QueryClient({
 function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate({ to: "/login", search: { redirect: location.href } });
+      navigate({ to: "/login" });
     }
-  }, [isAuthenticated, isLoading, navigate, location]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -84,9 +75,9 @@ function ProtectedRoute() {
 // Root layout with providers
 const rootRoute = createRootRoute({
   component: () => (
-    <Layout>
+    <WebLayout>
       <Outlet />
-    </Layout>
+    </WebLayout>
   ),
 });
 
@@ -117,67 +108,23 @@ const homeRoute = createRoute({
   component: HomePage,
 });
 
-const hubRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: "/hub",
-  component: HubPage,
-});
-
-const libraryRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: "/library",
-  component: LibraryPage,
-});
-
-const chatRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: "/chat/$chatId",
-  component: ChatPage,
-});
-
-const appDetailsRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: "/app/$appId",
-  component: AppDetailsPage,
-});
-
-const settingsRoute = createRoute({
-  getParentRoute: () => protectedLayoutRoute,
-  path: "/settings",
-  component: SettingsPage,
-});
-
-const providerSettingsRoute = createRoute({
-  getParentRoute: () => settingsRoute,
-  path: "/providers/$provider",
-  component: function ProviderSettingsRouteComponent() {
-    const { provider } = providerSettingsRoute.useParams();
-    return <ProviderSettingsPage provider={provider} />;
-  },
-});
-
 // Build route tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   protectedLayoutRoute.addChildren([
     homeRoute,
-    hubRoute,
-    libraryRoute,
-    chatRoute,
-    appDetailsRoute,
-    settingsRoute.addChildren([providerSettingsRoute]),
   ]),
 ]);
 
 const router = createRouter({
   routeTree,
   defaultNotFoundComponent: () => (
-    <div className="flex h-screen items-center justify-center">
+    <div className="flex h-screen items-center justify-center bg-background">
       <p className="text-muted-foreground">Page not found</p>
     </div>
   ),
-  defaultErrorComponent: ErrorBoundary,
+  defaultErrorComponent: WebErrorBoundary,
 });
 
 declare module "@tanstack/react-router" {
