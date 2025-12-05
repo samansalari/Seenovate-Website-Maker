@@ -39,7 +39,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create an account</CardTitle>
-          <CardDescription>Enter your information to create your Dyad account</CardDescription>
+          <CardDescription>Enter your information to create your Seenovate account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">

@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Login to Dyad</CardTitle>
+          <CardTitle>Login to Seenovate</CardTitle>
           <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

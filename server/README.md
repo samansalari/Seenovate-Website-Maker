@@ -1,6 +1,6 @@
-# Dyad Web Server
+# Seenovate Web Server
 
-Backend API server for the web deployment of Dyad on Railway.
+Backend API server for the web deployment of Seenovate on Railway.
 
 ## Quick Start
 

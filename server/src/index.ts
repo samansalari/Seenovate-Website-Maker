@@ -90,7 +90,7 @@ app.use((req, res, next) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dyad API Server</title>
+  <title>Seenovate API Server</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -124,7 +124,7 @@ app.use((req, res, next) => {
 </head>
 <body>
   <div class="container">
-    <h1>⚡ Dyad API</h1>
+    <h1>⚡ Seenovate API</h1>
     <div class="status">✓ API Ready</div>
     <p>Backend API server is running.</p>
     <p>Frontend not bundled. Run with Docker to include the frontend.</p>

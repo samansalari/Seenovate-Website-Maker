@@ -178,7 +178,7 @@ export function SetupBanner() {
   return (
     <>
       <p className="text-xl font-medium text-zinc-700 dark:text-zinc-300 p-4">
-        Setup Dyad
+        Setup Seenovate
       </p>
       <OnboardingBanner
         isVisible={isOnboardingVisible}
@@ -347,9 +347,9 @@ export function SetupBanner() {
                 onClick={handleDyadProSetupClick}
                 tabIndex={isNodeSetupComplete ? 0 : -1}
                 leadingIcon={
-                  <img src={logo} alt="Dyad Logo" className="w-6 h-6 mr-0.5" />
+                  <img src={logo} alt="Seenovate Logo" className="w-6 h-6 mr-0.5" />
                 }
-                title="Setup Dyad Pro"
+                title="Setup Seenovate Pro"
                 subtitle="Access all AI models with one plan"
                 chip={<>Recommended</>}
               />
@@ -446,7 +446,7 @@ function NodeInstallButton({
     case "finished-checking":
       return (
         <div className="mt-3 text-sm text-red-600 dark:text-red-400">
-          Node.js not detected. Closing and re-opening Dyad usually fixes this.
+          Node.js not detected. Closing and re-opening Seenovate usually fixes this.
         </div>
       );
     default:
