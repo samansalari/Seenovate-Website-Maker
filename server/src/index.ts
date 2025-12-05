@@ -31,9 +31,18 @@ app.use(cors({
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Health check endpoint
+// Track initialization state
+let isReady = false;
+let initError: string | null = null;
+
+// Health check endpoint - responds immediately even during init
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ 
+    status: isReady ? "ok" : "initializing", 
+    ready: isReady,
+    error: initError,
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // API routes
@@ -89,8 +98,8 @@ async function runMigrations() {
   }
 }
 
-// Initialize database and start server
-async function start() {
+// Initialize database and storage (runs after server starts)
+async function initializeServices() {
   try {
     // Run migrations first
     await runMigrations();
@@ -101,14 +110,30 @@ async function start() {
     console.log("Initializing storage...");
     await storage.initialize();
     
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
-    });
+    isReady = true;
+    console.log("All services initialized successfully");
   } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
+    console.error("Failed to initialize services:", error);
+    initError = error instanceof Error ? error.message : "Unknown error";
+    // Don't exit - keep server running for debugging
   }
+}
+
+// Start server immediately, then initialize services
+async function start() {
+  // Start HTTP server first so healthcheck passes
+  const server = app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+  });
+
+  server.on("error", (error) => {
+    console.error("Server error:", error);
+    process.exit(1);
+  });
+
+  // Initialize services in background
+  initializeServices();
 }
 
 // Graceful shutdown
