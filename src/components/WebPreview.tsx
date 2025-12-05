@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RefreshCw, Play, Square, ExternalLink, Terminal as TerminalIcon } from "lucide-react";
 import { ApiClient, TerminalLog } from "@/api/api_client";
-import { useAuth } from "@/web/src/auth/AuthContext";
+import { useAuth } from "@/web/auth/AuthContext";
 
 interface WebPreviewProps {
   appId: number;
