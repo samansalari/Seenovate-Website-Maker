@@ -44,8 +44,8 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
-# Install build tools for user apps (git, python, build-base for node-gyp)
-RUN apk add --no-cache git python3 make g++
+# Install build tools for user apps (git, python, build-base for node-gyp) and wget for healthcheck
+RUN apk add --no-cache git python3 make g++ wget
 
 WORKDIR /app
 
@@ -55,6 +55,9 @@ RUN npm ci --omit=dev
 
 # Copy built server
 COPY --from=backend-builder /app/dist ./dist
+
+# Verify the build output exists
+RUN ls -la dist/ && test -f dist/index.js
 
 # Copy built frontend (vite.web.config.mts outputs to dist_web/)
 COPY --from=frontend-builder /app/dist_web ./public
