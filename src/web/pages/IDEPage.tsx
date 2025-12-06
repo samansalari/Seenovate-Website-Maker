@@ -14,7 +14,8 @@ import { CreateAppDialog } from "../../components/CreateAppDialog"; // Will need
 export default function IDEPage() {
   const [selectedAppId] = useAtom(selectedAppIdAtom);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const { apps } = useLoadApps();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  useLoadApps(); // Preload apps
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden">
@@ -26,7 +27,7 @@ export default function IDEPage() {
           </Button>
         </div>
         <div className="flex-1 overflow-auto p-2">
-          <AppList apps={apps || []} />
+          <AppList show />
         </div>
       </div>
 
@@ -36,7 +37,7 @@ export default function IDEPage() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* Chat Panel */}
             <ResizablePanel defaultSize={30} minSize={20}>
-              <ChatPanel appId={selectedAppId} />
+              <ChatPanel isPreviewOpen={isPreviewOpen} onTogglePreview={() => setIsPreviewOpen(!isPreviewOpen)} />
             </ResizablePanel>
             
             <ResizableHandle />
@@ -63,7 +64,7 @@ export default function IDEPage() {
         )}
       </div>
 
-      <CreateAppDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+      <CreateAppDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} template={undefined} />
     </div>
   );
 }

@@ -97,7 +97,7 @@ export function LivePreview({ appId, className }: LivePreviewProps) {
         {isRunning ? (
           <iframe
             key={iframeKey}
-            src={`/api/preview/${appId}/`}
+            src={`/preview/${appId}/`}
             className="h-full w-full border-none"
             title="App Preview"
           />
