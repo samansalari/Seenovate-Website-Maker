@@ -26,7 +26,7 @@ export function createFileTools(context: ToolContext) {
     writeFile: tool({
       description:
         "Write content to a file in the project. Creates the file if it doesn't exist, or updates it if it does. Use this to create HTML, CSS, JavaScript, JSX, and other files.",
-      parameters: z.object({
+      inputSchema: z.object({
         path: z
           .string()
           .describe(
@@ -34,7 +34,7 @@ export function createFileTools(context: ToolContext) {
           ),
         content: z.string().describe("The complete content to write to the file"),
       }),
-      execute: async ({ path, content }) => {
+      execute: async ({ path, content }: { path: string; content: string }) => {
         try {
           const fullPath = `${appPath}/${path}`;
           await storage.writeFile(fullPath, content);
@@ -52,10 +52,10 @@ export function createFileTools(context: ToolContext) {
      */
     readFile: tool({
       description: "Read the contents of a file in the project",
-      parameters: z.object({
+      inputSchema: z.object({
         path: z.string().describe("The file path relative to the project root"),
       }),
-      execute: async ({ path }) => {
+      execute: async ({ path }: { path: string }) => {
         try {
           const fullPath = `${appPath}/${path}`;
           const content = await storage.readFile(fullPath);
@@ -71,13 +71,13 @@ export function createFileTools(context: ToolContext) {
      */
     listFiles: tool({
       description: "List all files and directories in the project",
-      parameters: z.object({
+      inputSchema: z.object({
         path: z
           .string()
           .optional()
           .describe("Directory path relative to project root (default: root)"),
       }),
-      execute: async ({ path }) => {
+      execute: async ({ path }: { path?: string }) => {
         try {
           const dirPath = path ? `${appPath}/${path}` : appPath;
           const files = await storage.listFiles(dirPath);
@@ -99,10 +99,10 @@ export function createFileTools(context: ToolContext) {
      */
     deleteFile: tool({
       description: "Delete a file from the project",
-      parameters: z.object({
+      inputSchema: z.object({
         path: z.string().describe("The file path to delete"),
       }),
-      execute: async ({ path }) => {
+      execute: async ({ path }: { path: string }) => {
         try {
           const fullPath = `${appPath}/${path}`;
           await storage.deleteFile(fullPath);
@@ -145,6 +145,6 @@ export async function initializeProject(
  * Check if a project is initialized (has package.json)
  */
 export async function isProjectInitialized(appPath: string): Promise<boolean> {
-  return storage.exists(`${appPath}/package.json`);
+  return await storage.exists(`${appPath}/package.json`);
 }
 

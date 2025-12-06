@@ -3,7 +3,7 @@ import { db } from "../db/index.js";
 import { apps, chats, messages, userSettings } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, AuthRequest } from "../auth/index.js";
-import { streamText } from "ai";
+import { streamText, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -185,18 +185,18 @@ router.post("/:chatId", async (req: AuthRequest, res: Response) => {
         abortSignal: abortController.signal,
         system: SYSTEM_PROMPT,
         tools: fileTools,
-        maxSteps: 10, // Allow multiple tool calls
-        onStepFinish: async ({ stepType, toolCalls, toolResults }) => {
+        stopWhen: stepCountIs(10), // Allow multiple tool calls
+        onStepFinish: async (stepResult) => {
           // Notify client about tool usage
-          if (stepType === "tool-result" && toolResults) {
-            for (const result of toolResults) {
-              if (result.result && typeof result.result === "object") {
-                const toolResult = result.result as { success?: boolean; path?: string; message?: string };
-                if (toolResult.success && toolResult.path) {
+          if (stepResult.toolResults && stepResult.toolResults.length > 0) {
+            for (const toolRes of stepResult.toolResults) {
+              if (toolRes.output && typeof toolRes.output === "object") {
+                const toolOutput = toolRes.output as { success?: boolean; path?: string; message?: string };
+                if (toolOutput.success && toolOutput.path) {
                   res.write(`data: ${JSON.stringify({ 
                     type: "fileUpdate", 
-                    path: toolResult.path,
-                    message: toolResult.message || `Updated ${toolResult.path}`
+                    path: toolOutput.path,
+                    message: toolOutput.message || `Updated ${toolOutput.path}`
                   })}\n\n`);
                 }
               }
