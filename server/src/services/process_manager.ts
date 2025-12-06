@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from "child_process";
+import { spawn, ChildProcess, execSync } from "child_process";
 import { Server as SocketServer } from "socket.io";
 import path from "path";
 import fs from "fs/promises";
@@ -50,12 +50,31 @@ export class ProcessManager {
     const appPath = storage.getUserAppPath(userId, appId);
     const fullPath = path.resolve(process.env.STORAGE_PATH || "./data", appPath);
 
-    // Ensure node_modules exists (run install if needed)
-    // Note: This assumes package.json exists
+    // Ensure package.json exists
     try {
       await fs.access(path.join(fullPath, "package.json"));
     } catch {
       throw new Error("Project not initialized (no package.json)");
+    }
+
+    this.broadcastLog(appId, `Preparing to start app...\n`);
+
+    // Check if node_modules exists, if not run npm install
+    try {
+      await fs.access(path.join(fullPath, "node_modules"));
+    } catch {
+      this.broadcastLog(appId, `Installing dependencies (npm install)...\n`);
+      try {
+        execSync("npm install", {
+          cwd: fullPath,
+          stdio: "pipe",
+          timeout: 120000, // 2 minute timeout
+        });
+        this.broadcastLog(appId, `Dependencies installed successfully!\n`);
+      } catch (installError: any) {
+        this.broadcastLog(appId, `npm install failed: ${installError.message}\n`, true);
+        throw new Error(`Failed to install dependencies: ${installError.message}`);
+      }
     }
 
     // Spawn process
